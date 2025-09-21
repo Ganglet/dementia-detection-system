@@ -3,7 +3,8 @@ import { redirect } from "next/navigation"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
-import { Brain, Clock, TrendingUp, FileText, User } from "lucide-react"
+import { Brain, Clock, TrendingUp, FileText, User, Search } from "lucide-react"
+import { SearchBar } from "@/components/search-bar"
 
 export default async function DashboardPage() {
   const supabase = await createClient()
@@ -37,13 +38,45 @@ export default async function DashboardPage() {
               </h1>
               <p className="text-gray-600">Track your cognitive health and assessment progress</p>
             </div>
-            <Button asChild variant="outline">
-              <Link href="/profile">
-                <User className="h-4 w-4 mr-2" />
-                Profile
-              </Link>
-            </Button>
+            <div className="flex gap-2">
+              <Button asChild variant="outline">
+                <Link href="/search">
+                  <Search className="h-4 w-4 mr-2" />
+                  Search
+                </Link>
+              </Button>
+              <Button asChild variant="outline">
+                <Link href="/profile">
+                  <User className="h-4 w-4 mr-2" />
+                  Profile
+                </Link>
+              </Button>
+            </div>
           </div>
+        </div>
+
+        <div className="mb-8">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Quick Search</CardTitle>
+              <CardDescription>Search through your assessments, results, and recommendations</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <SearchBar
+                placeholder="Search your health data..."
+                onResultSelect={(result) => {
+                  // Navigate to appropriate page based on result type
+                  const navigationMap = {
+                    assessment: "/dashboard",
+                    result: "/results",
+                    recommendation: "/results",
+                    profile: "/profile",
+                  }
+                  window.location.href = navigationMap[result.data.type as keyof typeof navigationMap] || "/dashboard"
+                }}
+              />
+            </CardContent>
+          </Card>
         </div>
 
         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">

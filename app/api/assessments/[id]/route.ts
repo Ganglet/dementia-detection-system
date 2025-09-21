@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server"
+import { indexDocument } from "@/lib/upstash-search"
 import { type NextRequest, NextResponse } from "next/server"
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -67,6 +68,29 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
 
     if (updateError || !assessment) {
       return NextResponse.json({ error: "Failed to update assessment" }, { status: 400 })
+    }
+
+    if (body.status === "completed") {
+      try {
+        await indexDocument({
+          id: `assessment_${id}`,
+          title: `${assessment.assessment_type} Assessment`,
+          content: `${assessment.assessment_type} assessment completed on ${new Date(assessment.created_at).toLocaleDateString()}. Status: ${assessment.status}. ${assessment.notes || ""}`,
+          type: "assessment",
+          userId: user.id,
+          metadata: {
+            assessmentId: id,
+            assessmentType: assessment.assessment_type,
+            status: assessment.status,
+            riskLevel: assessment.risk_level,
+            totalScore: assessment.total_score,
+          },
+          createdAt: assessment.created_at,
+        })
+      } catch (searchError) {
+        console.error("Error indexing updated assessment for search:", searchError)
+        // Don't fail the request if search indexing fails
+      }
     }
 
     return NextResponse.json({ assessment })

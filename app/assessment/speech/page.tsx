@@ -249,6 +249,7 @@ export default function SpeechAssessmentPage() {
     if (!assessmentId) return
 
     try {
+      setIsLoading(true)
       await supabase
         .from("assessments")
         .update({
@@ -257,9 +258,18 @@ export default function SpeechAssessmentPage() {
         })
         .eq("id", assessmentId)
 
-      router.push(`/results/${assessmentId}`)
+      const comprehensiveId = localStorage.getItem("comprehensiveAssessmentId")
+      if (comprehensiveId) {
+        localStorage.removeItem("comprehensiveAssessmentId")
+        router.push("/assessment/comprehensive")
+      } else {
+        router.push(`/results/${assessmentId}`)
+      }
     } catch (error) {
       console.error("Error completing assessment:", error)
+      alert("Error completing assessment. Please try again.")
+    } finally {
+      setIsLoading(false)
     }
   }
 

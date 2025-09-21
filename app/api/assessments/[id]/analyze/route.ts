@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server"
 import { DementiaRiskScorer } from "@/lib/risk-scoring"
+import { indexDocument } from "@/lib/upstash-search"
 import { type NextRequest, NextResponse } from "next/server"
 
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -118,8 +119,49 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       .update({
         risk_level: riskAssessment.riskLevel,
         total_score: riskAssessment.cognitiveScore,
+        status: "completed",
       })
       .eq("id", id)
+
+    try {
+      await indexDocument({
+        id: `result_${id}`,
+        title: `${assessment.assessment_type} Assessment Result`,
+        content: `Assessment completed with ${riskAssessment.riskLevel} risk level. Overall cognitive score: ${riskAssessment.cognitiveScore}%. Key findings: ${riskAssessment.riskFactors.join(", ")}. Recommendations: ${riskAssessment.recommendations.join(", ")}`,
+        type: "result",
+        userId: user.id,
+        metadata: {
+          assessmentId: id,
+          assessmentType: assessment.assessment_type,
+          riskLevel: riskAssessment.riskLevel,
+          cognitiveScore: riskAssessment.cognitiveScore,
+          speechScore: riskAssessment.speechScore,
+          confidenceLevel: riskAssessment.confidenceLevel,
+        },
+        createdAt: new Date().toISOString(),
+      })
+
+      // Index recommendations separately for better searchability
+      for (let i = 0; i < riskAssessment.recommendations.length; i++) {
+        await indexDocument({
+          id: `recommendation_${id}_${i}`,
+          title: `Recommendation ${i + 1} for ${assessment.assessment_type} Assessment`,
+          content: riskAssessment.recommendations[i],
+          type: "recommendation",
+          userId: user.id,
+          metadata: {
+            assessmentId: id,
+            assessmentType: assessment.assessment_type,
+            riskLevel: riskAssessment.riskLevel,
+            recommendationIndex: i,
+          },
+          createdAt: new Date().toISOString(),
+        })
+      }
+    } catch (searchError) {
+      console.error("Error indexing assessment for search:", searchError)
+      // Don't fail the request if search indexing fails
+    }
 
     return NextResponse.json({
       success: true,

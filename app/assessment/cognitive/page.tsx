@@ -163,6 +163,7 @@ export default function CognitiveAssessmentPage() {
     if (currentTask < COGNITIVE_TASKS.length - 1) {
       setCurrentTask(currentTask + 1)
       setTimeLeft(null)
+      setIsStudyPhase(false) // Reset study phase for next task
     } else {
       await completeAssessment()
     }
@@ -181,7 +182,13 @@ export default function CognitiveAssessmentPage() {
         })
         .eq("id", assessmentId)
 
-      router.push(`/results/${assessmentId}`)
+      const comprehensiveId = localStorage.getItem("comprehensiveAssessmentId")
+      if (comprehensiveId) {
+        localStorage.removeItem("comprehensiveAssessmentId")
+        router.push("/assessment/comprehensive")
+      } else {
+        router.push(`/results/${assessmentId}`)
+      }
     } catch (error) {
       console.error("Error completing assessment:", error)
     }
@@ -258,7 +265,18 @@ export default function CognitiveAssessmentPage() {
           >
             Previous
           </Button>
-          <Button onClick={handleNext} disabled={isLoading || !responses[currentTaskData.id]}>
+          <Button
+            onClick={handleNext}
+            disabled={
+              isLoading ||
+              (currentTaskData.type !== "memory_recall" && !responses[currentTaskData.id]) ||
+              (currentTaskData.type === "memory_recall" && isStudyPhase) ||
+              (currentTaskData.type === "memory_recall" &&
+                !isStudyPhase &&
+                !responses[currentTaskData.id] &&
+                timeLeft === null)
+            }
+          >
             {isLoading ? "Saving..." : currentTask === COGNITIVE_TASKS.length - 1 ? "Complete Assessment" : "Next"}
           </Button>
         </div>

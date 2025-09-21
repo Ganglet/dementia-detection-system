@@ -232,7 +232,7 @@ export default function ProfilePage() {
                     <Label htmlFor="firstName">First Name</Label>
                     <Input
                       id="firstName"
-                      value={profile.first_name}
+                      value={profile.first_name || ""}
                       onChange={(e) => setProfile({ ...profile, first_name: e.target.value })}
                       placeholder="Enter your first name"
                     />
@@ -241,7 +241,7 @@ export default function ProfilePage() {
                     <Label htmlFor="lastName">Last Name</Label>
                     <Input
                       id="lastName"
-                      value={profile.last_name}
+                      value={profile.last_name || ""}
                       onChange={(e) => setProfile({ ...profile, last_name: e.target.value })}
                       placeholder="Enter your last name"
                     />
@@ -254,13 +254,16 @@ export default function ProfilePage() {
                     <Input
                       id="dateOfBirth"
                       type="date"
-                      value={profile.date_of_birth}
+                      value={profile.date_of_birth || ""}
                       onChange={(e) => setProfile({ ...profile, date_of_birth: e.target.value })}
                     />
                   </div>
                   <div>
                     <Label htmlFor="gender">Gender</Label>
-                    <Select value={profile.gender} onValueChange={(value) => setProfile({ ...profile, gender: value })}>
+                    <Select
+                      value={profile.gender || ""}
+                      onValueChange={(value) => setProfile({ ...profile, gender: value })}
+                    >
                       <SelectTrigger>
                         <SelectValue placeholder="Select gender" />
                       </SelectTrigger>
@@ -277,7 +280,7 @@ export default function ProfilePage() {
                   <div>
                     <Label htmlFor="education">Education Level</Label>
                     <Select
-                      value={profile.education_level}
+                      value={profile.education_level || ""}
                       onValueChange={(value) => setProfile({ ...profile, education_level: value })}
                     >
                       <SelectTrigger>
@@ -295,7 +298,7 @@ export default function ProfilePage() {
                   <div>
                     <Label htmlFor="language">Primary Language</Label>
                     <Select
-                      value={profile.primary_language}
+                      value={profile.primary_language || "english"}
                       onValueChange={(value) => setProfile({ ...profile, primary_language: value })}
                     >
                       <SelectTrigger>
