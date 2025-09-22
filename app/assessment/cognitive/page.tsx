@@ -9,7 +9,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { createClient } from "@/lib/supabase/client"
 import { useRouter } from "next/navigation"
 import { useState, useEffect } from "react"
-import { Clock } from "lucide-react"
+import { Clock, SkipForward } from "lucide-react"
 
 interface CognitiveTask {
   id: string
@@ -74,6 +74,7 @@ export default function CognitiveAssessmentPage() {
   const [responses, setResponses] = useState<Record<string, string>>({})
   const [timeLeft, setTimeLeft] = useState<number | null>(null)
   const [isStudyPhase, setIsStudyPhase] = useState(false)
+  const [studyPhaseCompleted, setStudyPhaseCompleted] = useState(false)
   const [assessmentId, setAssessmentId] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const router = useRouter()
@@ -92,6 +93,7 @@ export default function CognitiveAssessmentPage() {
     } else if (timeLeft === 0) {
       if (isStudyPhase) {
         setIsStudyPhase(false)
+        setStudyPhaseCompleted(true)
         setTimeLeft(null)
       } else {
         handleNext()
@@ -126,6 +128,16 @@ export default function CognitiveAssessmentPage() {
   const startStudyPhase = () => {
     setIsStudyPhase(true)
     setTimeLeft(currentTaskData.timeLimit || 30)
+  }
+
+  const skipTimer = () => {
+    if (isStudyPhase) {
+      setIsStudyPhase(false)
+      setStudyPhaseCompleted(true)
+      setTimeLeft(null)
+    } else {
+      setTimeLeft(null)
+    }
   }
 
   const handleResponse = (value: string) => {
@@ -163,7 +175,8 @@ export default function CognitiveAssessmentPage() {
     if (currentTask < COGNITIVE_TASKS.length - 1) {
       setCurrentTask(currentTask + 1)
       setTimeLeft(null)
-      setIsStudyPhase(false) // Reset study phase for next task
+      setIsStudyPhase(false)
+      setStudyPhaseCompleted(false)
     } else {
       await completeAssessment()
     }
@@ -204,7 +217,13 @@ export default function CognitiveAssessmentPage() {
         <CardDescription>Memorize these words</CardDescription>
       </CardHeader>
       <CardContent className="text-center">
-        <div className="text-6xl font-bold text-blue-600 mb-8">{timeLeft}</div>
+        <div className="flex items-center justify-center gap-4 mb-6">
+          <div className="text-6xl font-bold text-blue-600">{timeLeft}</div>
+          <Button variant="outline" size="sm" onClick={skipTimer} className="flex items-center gap-2 bg-transparent">
+            <SkipForward className="h-4 w-4" />
+            Skip Timer
+          </Button>
+        </div>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-xl font-medium">
           {currentTaskData.correctAnswer?.split(",").map((word, index) => (
             <div key={index} className="p-4 bg-blue-50 rounded-lg">
@@ -222,9 +241,20 @@ export default function CognitiveAssessmentPage() {
         <CardTitle className="flex items-center justify-between">
           {currentTaskData.name}
           {timeLeft !== null && (
-            <div className="flex items-center gap-2 text-orange-600">
-              <Clock className="h-4 w-4" />
-              {timeLeft}s
+            <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 text-orange-600">
+                <Clock className="h-4 w-4" />
+                {timeLeft}s
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={skipTimer}
+                className="flex items-center gap-1 bg-transparent"
+              >
+                <SkipForward className="h-3 w-3" />
+                Skip
+              </Button>
             </div>
           )}
         </CardTitle>
@@ -270,11 +300,7 @@ export default function CognitiveAssessmentPage() {
             disabled={
               isLoading ||
               (currentTaskData.type !== "memory_recall" && !responses[currentTaskData.id]) ||
-              (currentTaskData.type === "memory_recall" && isStudyPhase) ||
-              (currentTaskData.type === "memory_recall" &&
-                !isStudyPhase &&
-                !responses[currentTaskData.id] &&
-                timeLeft === null)
+              (currentTaskData.type === "memory_recall" && isStudyPhase)
             }
           >
             {isLoading ? "Saving..." : currentTask === COGNITIVE_TASKS.length - 1 ? "Complete Assessment" : "Next"}
@@ -284,7 +310,13 @@ export default function CognitiveAssessmentPage() {
     </Card>
   )
 
-  if (currentTaskData.type === "memory_recall" && !isStudyPhase && !responses[currentTaskData.id]) {
+  if (
+    currentTaskData.type === "memory_recall" &&
+    timeLeft === null &&
+    !responses[currentTaskData.id] &&
+    !isStudyPhase &&
+    !studyPhaseCompleted
+  ) {
     return (
       <AssessmentLayout
         title="Cognitive Assessment"
